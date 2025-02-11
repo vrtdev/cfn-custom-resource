@@ -7,15 +7,19 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
 import sys, os.path
-import pkg_resources
 import six
+if six.PY2:
+    import pkg_resources
+else:
+    import importlib.resources
 import json
 import shutil
 import collections
 
+
 def create_resource_and_output(name, code_uri, handler, set_function_name=False, runtime=None, policies=None, properties=None):
     if not runtime:
-        runtime = 'python2.7' if six.PY2 else 'python3.6'
+        runtime = 'python2.7' if six.PY2 else 'python3.12'
     
     if not policies:
         policies = 'AdministratorAccess'
@@ -47,15 +51,18 @@ def create_resource_and_output(name, code_uri, handler, set_function_name=False,
     
     return {name: resource}, output
 
+
 def _parse_json(value):
     try:
         return json.loads(value)
     except:
         return value
 
+
 def _property_argument(input):
     key, value = input.split('=')
     return (key, _parse_json(value))
+
 
 """
 Input: file or dir
@@ -64,6 +71,7 @@ Option:
 """
 
 _config = collections.namedtuple('_config', ['name', 'code_uri', 'handler'])
+
 
 def _get_config(path):
     if path.endswith('/'):
@@ -148,9 +156,13 @@ def template_main():
     
     ccr_path = os.path.join(config.code_uri, 'cfn_custom_resource.py')
     if True: #not os.path.exists(ccr_path):
-        with pkg_resources.resource_stream(__name__, 'cfn_custom_resource.py') as source, open(ccr_path, 'wb') as dest:
-            shutil.copyfileobj(source, dest)
-    
+        if six.PY2:
+            with pkg_resources.resource_stream(__name__, 'cfn_custom_resource.py') as source, open(ccr_path, 'wb') as dest:
+                shutil.copyfileobj(source, dest)
+        else:
+            with importlib.resources.open_binary(__name__, 'cfn_custom_resource.py') as source, open(ccr_path, 'wb') as dest:
+                shutil.copyfileobj(source, dest)
+
     resource, output = create_resource_and_output(**kwargs)
 
     template['Resources'].update(resource)
