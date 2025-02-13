@@ -11,12 +11,25 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
 
+import six
+
+
 def _get_version():
-    import pkg_resources, codecs
-    if not pkg_resources.resource_exists(__name__, '_version'):
-        return '0.0.0'
-    with pkg_resources.resource_stream(__name__, '_version') as fp:
-        return codecs.getreader('utf-8')(fp).read().strip()
+    if six.PY2:
+        import pkg_resources, codecs
+        if not pkg_resources.resource_exists(__name__, '_version'):
+            return '0.0.0'
+        with pkg_resources.resource_stream(__name__, '_version') as fp:
+            return codecs.getreader('utf-8')(fp).read().strip()
+    else:
+        import importlib.resources
+        try:
+            with importlib.resources.open_text(__name__, '_version') as fp:
+                return fp.read().strip()
+        except FileNotFoundError:
+            return '0.0.0'
+
+
 __version__ = _get_version()
 
 from .cfn_custom_resource import CloudFormationCustomResource
